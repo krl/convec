@@ -1,0 +1,11 @@
+[package]
+authors = ["Kristoffer Ström <kristoffer@rymdkoloni.se>"]
+description = "Concurrent Vector"
+documentation = "https://docs.rs/convec/"
+repository = "https://github.com/krl/convec"
+license = "GPL-3.0"
+name = "convec"
+version = "1.0.0"
+
+[dependencies]
+parking_lot = "0.4.8"
