@@ -1,180 +1,64 @@
 #![deny(missing_docs)]
-//! Append-only concurrent vector
+//! Two views on a concurrent vector
 extern crate parking_lot;
-use std::cell::UnsafeCell;
+
 use std::ops::Index;
 
-use parking_lot::RwLock;
+mod convec;
 
-const BASE: usize = 32;
+use convec::ConVec;
 
-/// A concurrent vector, only supporting push and indexed access
-pub struct ConVec<T> {
-    len: RwLock<usize>,
-    allocations: [UnsafeCell<Vec<T>>; 64],
-}
+/// Append only concurrent vector
+pub struct AoVec<T>(ConVec<T>);
+/// Concurrent stack
+pub struct ConStack<T>(ConVec<T>);
 
-unsafe impl<T> Sync for ConVec<T> {}
-unsafe impl<T> Send for ConVec<T> {}
-
-impl<T> ConVec<T> {
-    /// Creates a new `ConVec`
+impl<T> ConStack<T> {
+    /// Creates a new `ConStack`
     pub fn new() -> Self {
-        ConVec {
-            len: RwLock::new(0),
-            allocations: [
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-                UnsafeCell::new(vec![]),
-            ],
-        }
+        ConStack(ConVec::new())
     }
-
-    // get the allocation and offset within it.
-    fn allocation(&self, mut offset: usize) -> (usize, usize) {
-        let mut compare = BASE;
-        let mut allocation = 0;
-        loop {
-            if compare > offset {
-                return (allocation, offset);
-            } else {
-                offset -= compare;
-            }
-            compare = compare << 1;
-            allocation += 1;
-        }
-    }
-
-    #[inline]
-    fn _get(&self, idx: usize) -> &T {
-        let (index, offset) = self.allocation(idx);
-        unsafe { &(*self.allocations[index].get())[offset] }
-    }
-
-    #[inline]
-    fn valid_index(&self, idx: usize) -> bool {
-        *self.len.read() > idx
-    }
-
-    /// Returns the length of the `ConVec`.
+    /// Returns the length of the `ConStack`
     pub fn len(&self) -> usize {
-        *self.len.read()
+        self.0.len()
     }
-
-    /// Get value at index `idx`
-    pub fn get(&self, idx: usize) -> Option<&T> {
-        if self.valid_index(idx) {
-            Some(self._get(idx))
-        } else {
-            None
-        }
+    /// Push an element to the `ConStack`
+    pub fn push(&self, t: T) {
+        self.0.push(t);
     }
-
-    /// Get value at index `idx`, without checking bounds
-    pub unsafe fn get_unchecked(&self, idx: usize) -> &T {
-        self._get(idx)
-    }
-
-    /// Adds an element to the `ConVec`, returning its index.
-    pub fn push(&self, t: T) -> usize {
-        let mut guard = self.len.write();
-        let idx = *guard;
-        *guard += 1;
-        let (index, _) = self.allocation(idx);
-        unsafe {
-            let allocation = self.allocations[index].get();
-            if (*allocation).len() == 0 {
-                *allocation = Vec::with_capacity(BASE << index);
-            }
-            (*allocation).push(t);
-        }
-        idx
-    }
-
     /// Pops the last element off the list (if any)
     pub fn pop(&self) -> Option<T> {
-        let mut guard = self.len.write();
-        let len = *guard;
-        if len == 0 {
-            return None;
-        }
-        *guard -= 1;
-        unsafe {
-            let (index, _) = self.allocation(len);
-            (*self.allocations[index].get()).pop()
-        }
+        unsafe { self.0.pop() }
     }
 }
 
-impl<T> Index<usize> for ConVec<T> {
+impl<T> AoVec<T> {
+    /// Creates a new `AoVece`
+    pub fn new() -> Self {
+        AoVec(ConVec::new())
+    }
+    /// Returns the length of the `ConStack`.
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+    /// Push an element to the `AoVec`, returning its index
+    pub fn push(&self, t: T) -> usize {
+        self.0.push(t)
+    }
+    /// Get value at index `idx`
+    pub fn get(&self, i: usize) -> Option<&T> {
+        self.0.get(i)
+    }
+    /// Get value at index `idx`, without checking bounds
+    pub unsafe fn get_unchecked(&self, i: usize) -> &T {
+        self.0.get_unchecked(i)
+    }
+}
+
+impl<T> Index<usize> for AoVec<T> {
     type Output = T;
     fn index(&self, idx: usize) -> &Self::Output {
-        if self.valid_index(idx) {
-            self._get(idx)
-        } else {
-            panic!("Index out of range");
-        }
+        self.0.get(idx).expect("Index out of bounds")
     }
 }
 
@@ -185,8 +69,8 @@ mod tests {
     use std::collections::HashSet;
 
     #[test]
-    fn multithreading() {
-        let vec = Arc::new(ConVec::new());
+    fn aovec() {
+        let vec = Arc::new(AoVec::new());
         let n = 1_000_000;
 
         let n_threads = 16;
@@ -206,13 +90,42 @@ mod tests {
             h.join().unwrap();
         }
 
-        let mut set = HashSet::new();
+        let mut set_index = HashSet::new();
+        let mut set_get = HashSet::new();
+        let mut set_get_unchecked = HashSet::new();
 
         for i in 0..n {
-            set.insert(vec[i]);
+            set_index.insert(vec[i]);
+            set_get.insert(vec.get(i));
+            set_get_unchecked.insert(unsafe { vec.get_unchecked(i) });
         }
 
-        assert_eq!(set.len(), n);
+        assert_eq!(set_index.len(), n);
+        assert_eq!(set_get.len(), n);
+        assert_eq!(set_get_unchecked.len(), n);
+    }
+
+    #[test]
+    fn constack() {
+        let vec = Arc::new(ConStack::new());
+        let n = 1_000_000;
+
+        let n_threads = 16;
+
+        let mut handles = vec![];
+
+        for t in 0..n_threads {
+            let vec = vec.clone();
+            handles.push(std::thread::spawn(move || for i in 0..n {
+                if i % n_threads == t {
+                    vec.push(i);
+                }
+            }))
+        }
+
+        for h in handles {
+            h.join().unwrap();
+        }
 
         let mut handles = vec![];
 
