@@ -8,8 +8,10 @@ mod convec;
 
 use convec::ConVec;
 
+#[derive(Debug)]
 /// Append only concurrent vector
 pub struct AoVec<T>(ConVec<T>);
+#[derive(Debug)]
 /// Concurrent stack
 pub struct ConStack<T>(ConVec<T>);
 
@@ -29,6 +31,14 @@ impl<T> ConStack<T> {
     /// Pops the last element off the list (if any)
     pub fn pop(&self) -> Option<T> {
         unsafe { self.0.pop() }
+    }
+
+    #[allow(unused)]
+    fn heap_size(&self) -> usize
+    where
+        T: ::std::fmt::Debug,
+    {
+        self.0.heap_size()
     }
 }
 
@@ -106,19 +116,49 @@ mod tests {
     }
 
     #[test]
-    fn constack() {
-        let vec = Arc::new(ConStack::new());
+    fn single_threaded_aovec() {
+        let vec = AoVec::new();
         let n = 1_000_000;
+
+        for i in 0..n {
+            vec.push(i);
+        }
+
+        for i in 0..n {
+            assert_eq!(vec.get(i), Some(&i));
+        }
+    }
+
+    #[test]
+    fn single_threaded_constack() {
+        let stack = ConStack::new();
+        let n = 1_000_000;
+
+        for i in 0..n {
+            stack.push(i);
+        }
+
+        for i in 0..n {
+            assert_eq!(stack.pop(), Some(n - i - 1));
+        }
+        assert_eq!(stack.pop(), None);
+        assert_eq!(stack.heap_size(), 0);
+    }
+
+    #[test]
+    fn constack() {
+        let stack = Arc::new(ConStack::new());
+        let n = 32;
 
         let n_threads = 16;
 
         let mut handles = vec![];
 
         for t in 0..n_threads {
-            let vec = vec.clone();
+            let stack = stack.clone();
             handles.push(std::thread::spawn(move || for i in 0..n {
                 if i % n_threads == t {
-                    vec.push(i);
+                    stack.push(i);
                 }
             }))
         }
@@ -130,10 +170,10 @@ mod tests {
         let mut handles = vec![];
 
         for t in 0..n_threads {
-            let vec = vec.clone();
+            let stack = stack.clone();
             handles.push(std::thread::spawn(move || for i in 0..n {
                 if i % n_threads == t {
-                    vec.pop().is_some();
+                    stack.pop().is_some();
                 }
             }))
         }
@@ -142,7 +182,8 @@ mod tests {
             h.join().unwrap();
         }
 
-        assert_eq!(vec.len(), 0);
-        assert_eq!(vec.pop(), None);
+        assert_eq!(stack.heap_size(), 0);
+        assert_eq!(stack.len(), 0);
+        assert_eq!(stack.pop(), None);
     }
 }

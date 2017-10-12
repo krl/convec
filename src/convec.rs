@@ -1,6 +1,7 @@
 extern crate parking_lot;
 use std::cell::UnsafeCell;
 use std::ops::Index;
+use std::{fmt, mem};
 
 use parking_lot::RwLock;
 
@@ -149,14 +150,45 @@ impl<T> ConVec<T> {
 
     pub unsafe fn pop(&self) -> Option<T> {
         let mut guard = self.len.write();
-        let len = *guard;
-        if len == 0 {
+        if *guard == 0 {
             return None;
         }
         *guard -= 1;
 
-        let (index, _) = self.allocation(len);
-        (*self.allocations[index].get()).pop()
+        let (index, _) = self.allocation(*guard);
+        let popped = (*self.allocations[index].get()).pop();
+        // deallocate
+        if (*self.allocations[index].get()).len() == 0 {
+            *self.allocations[index].get() = vec![];
+        }
+        popped
+    }
+
+    #[allow(unused)]
+    pub fn heap_size(&self) -> usize
+    where
+        T: ::std::fmt::Debug,
+    {
+        let mut heap_size = 0;
+        for i in 0..64 {
+            unsafe {
+                heap_size += (*self.allocations[i].get()).capacity() *
+                    mem::size_of::<T>();
+            }
+        }
+        heap_size
+    }
+}
+
+impl<T: fmt::Debug> fmt::Debug for ConVec<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for i in 0..64 {
+            let alloc = unsafe { &(*self.allocations[i].get()) };
+            if alloc.len() > 0 {
+                write!(f, "{:?} ", alloc)?;
+            }
+        }
+        Ok(())
     }
 }
 
