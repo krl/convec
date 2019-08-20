@@ -42,6 +42,12 @@ impl<T> ConStack<T> {
     }
 }
 
+impl<T> Default for ConStack<T> {
+    fn default() -> ConStack<T> {
+        ConStack::new()
+    }
+}
+
 impl<T> AoVec<T> {
     /// Creates a new `AoVece`
     pub fn new() -> Self {
@@ -62,6 +68,12 @@ impl<T> AoVec<T> {
     /// Get value at index `idx`, without checking bounds
     pub unsafe fn get_unchecked(&self, i: usize) -> &T {
         self.0.get_unchecked(i)
+    }
+}
+
+impl<T> Default for AoVec<T> {
+    fn default() -> AoVec<T> {
+        AoVec::new()
     }
 }
 
