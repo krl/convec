@@ -6,6 +6,7 @@ repository = "https://github.com/krl/convec"
 license = "GPL-3.0"
 name = "convec"
 version = "2.0.1"
+edition = "2018"
 
 [dependencies]
 parking_lot = "0.4.8"
