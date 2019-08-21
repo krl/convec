@@ -1,6 +1,5 @@
 #![deny(missing_docs)]
 //! Two views on a concurrent vector
-extern crate parking_lot;
 
 use std::ops::Index;
 

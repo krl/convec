@@ -1,4 +1,3 @@
-extern crate parking_lot;
 use std::cell::UnsafeCell;
 use std::ops::Index;
 use std::{fmt, mem};
