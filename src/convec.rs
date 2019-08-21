@@ -13,6 +13,11 @@ pub struct ConVec<T> {
     allocations: [UnsafeCell<Vec<T>>; 64],
 }
 
+pub struct ConVecIter<'a, T: 'a> {
+    pub(crate) inner: &'a ConVec<T>,
+    pub(crate) index: usize,
+}
+
 unsafe impl<T> Sync for ConVec<T> {}
 unsafe impl<T> Send for ConVec<T> {}
 
@@ -200,5 +205,17 @@ impl<T> Index<usize> for ConVec<T> {
         } else {
             panic!("Index out of range");
         }
+    }
+}
+
+impl<'a, T> Iterator for ConVecIter<'a, T> {
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let result = self.inner.get(self.index);
+        if result.is_some() {
+            self.index += 1;
+        }
+        result
     }
 }

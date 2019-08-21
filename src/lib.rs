@@ -6,7 +6,7 @@ use std::ops::Index;
 
 mod convec;
 
-use convec::ConVec;
+use convec::{ConVec, ConVecIter};
 
 #[derive(Debug)]
 /// Append only concurrent vector
@@ -48,6 +48,18 @@ impl<T> Default for ConStack<T> {
     }
 }
 
+impl<'a, T> IntoIterator for &'a ConStack<T> {
+    type Item = &'a T;
+    type IntoIter = ConVecIter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        ConVecIter {
+            inner: &self.0,
+            index: 0,
+        }
+    }
+}
+
 impl<T> AoVec<T> {
     /// Creates a new `AoVece`
     pub fn new() -> Self {
@@ -81,6 +93,18 @@ impl<T> Index<usize> for AoVec<T> {
     type Output = T;
     fn index(&self, idx: usize) -> &Self::Output {
         self.0.get(idx).expect("Index out of bounds")
+    }
+}
+
+impl<'a, T> IntoIterator for &'a AoVec<T> {
+    type Item = &'a T;
+    type IntoIter = ConVecIter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        ConVecIter {
+            inner: &self.0,
+            index: 0,
+        }
     }
 }
 
