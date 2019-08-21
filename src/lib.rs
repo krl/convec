@@ -111,8 +111,8 @@ impl<'a, T> IntoIterator for &'a AoVec<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Arc;
     use std::collections::HashSet;
+    use std::sync::Arc;
 
     #[test]
     fn aovec() {
@@ -125,9 +125,11 @@ mod tests {
 
         for t in 0..n_threads {
             let vec = vec.clone();
-            handles.push(std::thread::spawn(move || for i in 0..n {
-                if i % n_threads == t {
-                    vec.push(i);
+            handles.push(std::thread::spawn(move || {
+                for i in 0..n {
+                    if i % n_threads == t {
+                        vec.push(i);
+                    }
                 }
             }))
         }
@@ -192,9 +194,11 @@ mod tests {
 
         for t in 0..n_threads {
             let stack = stack.clone();
-            handles.push(std::thread::spawn(move || for i in 0..n {
-                if i % n_threads == t {
-                    stack.push(i);
+            handles.push(std::thread::spawn(move || {
+                for i in 0..n {
+                    if i % n_threads == t {
+                        stack.push(i);
+                    }
                 }
             }))
         }
@@ -207,9 +211,11 @@ mod tests {
 
         for t in 0..n_threads {
             let stack = stack.clone();
-            handles.push(std::thread::spawn(move || for i in 0..n {
-                if i % n_threads == t {
-                    stack.pop().is_some();
+            handles.push(std::thread::spawn(move || {
+                for i in 0..n {
+                    if i % n_threads == t {
+                        stack.pop().is_some();
+                    }
                 }
             }))
         }

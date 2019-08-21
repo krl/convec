@@ -121,7 +121,6 @@ impl<T> ConVec<T> {
         *self.len.read() > idx
     }
 
-
     pub fn len(&self) -> usize {
         *self.len.read()
     }
@@ -177,8 +176,8 @@ impl<T> ConVec<T> {
         let mut heap_size = 0;
         for i in 0..64 {
             unsafe {
-                heap_size += (*self.allocations[i].get()).capacity() *
-                    mem::size_of::<T>();
+                heap_size += (*self.allocations[i].get()).capacity()
+                    * mem::size_of::<T>();
             }
         }
         heap_size
