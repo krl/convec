@@ -13,8 +13,8 @@ pub struct ConVec<T> {
 }
 
 pub struct ConVecIter<'a, T: 'a> {
-    pub(crate) inner: &'a ConVec<T>,
-    pub(crate) index: usize,
+    inner: &'a ConVec<T>,
+    index: usize,
 }
 
 unsafe impl<T> Sync for ConVec<T> {}
@@ -202,6 +202,18 @@ impl<T> Index<usize> for ConVec<T> {
             self._get(idx)
         } else {
             panic!("Index out of range");
+        }
+    }
+}
+
+impl<'a, T> IntoIterator for &'a ConVec<T> {
+    type Item = &'a T;
+    type IntoIter = ConVecIter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        ConVecIter {
+            inner: &self,
+            index: 0,
         }
     }
 }

@@ -52,10 +52,7 @@ impl<'a, T> IntoIterator for &'a ConStack<T> {
     type IntoIter = ConVecIter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        ConVecIter {
-            inner: &self.0,
-            index: 0,
-        }
+        self.0.into_iter()
     }
 }
 
@@ -100,10 +97,7 @@ impl<'a, T> IntoIterator for &'a AoVec<T> {
     type IntoIter = ConVecIter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        ConVecIter {
-            inner: &self.0,
-            index: 0,
-        }
+        self.0.into_iter()
     }
 }
 
