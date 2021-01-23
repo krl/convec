@@ -13,8 +13,8 @@ pub struct ConVec<T> {
     allocations: [UnsafeCell<Vec<T>>; 64],
 }
 
-unsafe impl<T> Sync for ConVec<T> {}
-unsafe impl<T> Send for ConVec<T> {}
+unsafe impl<T: Send + Sync> Sync for ConVec<T> {}
+unsafe impl<T: Send> Send for ConVec<T> {}
 
 impl<T> ConVec<T> {
     pub fn new() -> Self {
